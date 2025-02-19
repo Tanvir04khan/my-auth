@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { AxiosError } from "axios";
 import { ChangeEvent, FormEvent, useState } from "react";
-import { useNavigate } from "react-router";
+import Alert from "./Alert";
+import useLogin from "@/hooks/useLogin";
 
 const Login = ({
   className,
@@ -13,8 +15,12 @@ const Login = ({
   const [email, setEmail] = useState("");
   const [isValidEmail, setIsValidEmail] = useState(true);
   const [password, setPassword] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<"Success" | "Error" | "Warning">(
+    "Success"
+  );
 
-  const navigator = useNavigate();
+  const { mutate: login } = useLogin();
 
   const onchangeEmail = (e: ChangeEvent<HTMLInputElement>) => {
     if (!isValidEmail) setIsValidEmail(true);
@@ -26,8 +32,15 @@ const Login = ({
     if (!email.includes("@")) {
       return setIsValidEmail(false);
     }
-
-    navigator("/home");
+    login(
+      { email, password },
+      {
+        onError: (error) => {
+          setAlertType("Error");
+          setAlertMessage(error.message);
+        },
+      }
+    );
   };
 
   return (
@@ -98,6 +111,15 @@ const Login = ({
         By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
         and <a href="#">Privacy Policy</a>.
       </div>
+      {alertMessage && (
+        <Alert
+          title="Login"
+          description={alertMessage}
+          type={alertType}
+          setAlertMessage={setAlertMessage}
+          variant="default"
+        />
+      )}
     </div>
   );
 };

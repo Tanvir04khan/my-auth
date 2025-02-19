@@ -19,6 +19,7 @@ export function NavUser({
   user,
 }: {
   user: {
+    userId: string;
     name: string;
     email: string;
     avatar: string;
@@ -26,7 +27,7 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar();
   const navigator = useNavigate();
-
+  const userName = user.name.split(" ");
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -38,7 +39,7 @@ export function NavUser({
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">TK</AvatarFallback>
+                <AvatarFallback className="rounded-lg">{""}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{user.name}</span>

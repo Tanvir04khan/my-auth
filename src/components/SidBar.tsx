@@ -16,6 +16,10 @@ import {
   SidebarFooter,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import useLogin from "@/hooks/useLogin";
+import { APIRoutes } from "@/utils";
+import { UserType } from "@/types";
 
 // This is sample data.
 const data = {
@@ -131,13 +135,25 @@ const data = {
 };
 
 export function SidBar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const queryClient = useQueryClient();
+  const userDetails = queryClient.getQueryData<UserType>(["userDetails"]);
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarContent>
         <Navbar items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser
+          user={{
+            userId: userDetails ? userDetails.userId : "",
+            name: userDetails
+              ? `${userDetails.firstName} ${userDetails.lastName}`
+              : "",
+            email: userDetails ? userDetails.email : "",
+            avatar: "/avatars/shadcn.jpg",
+          }}
+        />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

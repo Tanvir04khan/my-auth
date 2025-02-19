@@ -4,13 +4,27 @@ import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { useNavigate } from "react-router";
 import { ChangeEvent, FormEvent, useState } from "react";
+import {
+  Dialog as DialogSCN,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
+import { baseUrl, APIRoutes, saveAccessTokenAndRefreshToken } from "@/utils";
+import Alert from "./Alert";
+import { LoginAndSignupResponse, TokenType, UserType } from "@/types";
 
 const Signup = () => {
   const [firstName, setFirstName] = useState("");
   const [isValidFirstName, setIsValidFirstName] = useState(true);
   const [lastName, setLastName] = useState("");
   const [isValidLastName, setIsValidLastName] = useState(true);
-  const [PhoneNumber, setPhoneNumber] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [isValidPhoneNumber, setIsValidPhoneNumber] = useState(true);
   const [email, setEmail] = useState("");
   const [isValidEmail, setIsValidEmail] = useState(true);
@@ -18,6 +32,45 @@ const Signup = () => {
   const [isValidPassword, setIsValidPassword] = useState(true);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [ConfirmPasswordError, setConfirmPasswordError] = useState("");
+  const [isDialogOen, setIsDialogOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<"Success" | "Error" | "Warning">(
+    "Success"
+  );
+  const queryClient = useQueryClient();
+
+  const { mutate } = useMutation({
+    mutationFn: async (event: FormEvent) => {
+      event.preventDefault();
+      return await axios.post<LoginAndSignupResponse>(
+        `${baseUrl}${APIRoutes.USER_SIGNUP}`,
+        {
+          firstName,
+          lastName,
+          phoneNumber,
+          email,
+          password,
+        }
+      );
+    },
+    onSuccess: ({ data }) => {
+      setAlertType("Success");
+      setAlertMessage(data.message);
+      const { accessToken, refreshToken, ...userDetails } = data.data;
+      saveAccessTokenAndRefreshToken(
+        accessToken,
+        refreshToken,
+        userDetails.userId
+      );
+      queryClient.setQueryData(["userDetails"], userDetails);
+      navigator("/home");
+    },
+    onError: (error) => {
+      setIsDialogOpen(false);
+      setAlertType("Error");
+      setAlertMessage(error.message);
+    },
+  });
 
   const navigator = useNavigate();
 
@@ -52,7 +105,7 @@ const Signup = () => {
       return setIsValidFirstName(false);
     if (lastName.length < 3 || lastName.length > 10)
       return setIsValidLastName(false);
-    if (!/^\d{10}$/.test(PhoneNumber)) return setIsValidPhoneNumber(false);
+    if (!/^\d{10}$/.test(phoneNumber)) return setIsValidPhoneNumber(false);
 
     if (!email.includes("@")) return setIsValidEmail(false);
 
@@ -68,7 +121,7 @@ const Signup = () => {
         "Your passwords don’t match. Please re-enter the same password!"
       );
 
-    navigator("/home");
+    setIsDialogOpen(true);
   };
 
   return (
@@ -133,7 +186,7 @@ const Signup = () => {
                     maxLength={10}
                     placeholder="Phone Number"
                     required
-                    value={PhoneNumber}
+                    value={phoneNumber}
                     onChange={onChangePhoneNumber}
                   />
                   {!isValidPhoneNumber && (
@@ -190,13 +243,73 @@ const Signup = () => {
                   )}
                 </div>
               </div>
-              <Button onClick={onClickSignUp} type="submit" className="w-full">
-                Sign up
-              </Button>
+              <DialogSCN
+                onOpenChange={() => setIsDialogOpen((ps) => !ps)}
+                open={isDialogOen}
+              >
+                <DialogTrigger asChild>
+                  <Button
+                    type="submit"
+                    onClick={(e) => {
+                      onClickSignUp(e);
+                    }}
+                  >
+                    Sign up
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Review & Confirm Your Details</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="flex flex-col items-start justify-center gap-2">
+                      <h1 className="font-semibold text-muted-foreground">
+                        First Name
+                      </h1>
+                      <h1 className="font-semibold">{firstName}</h1>
+                    </div>
+                    <div className="flex flex-col items-start justify-center gap-2">
+                      <h1 className="font-semibold text-muted-foreground">
+                        Last Name
+                      </h1>
+                      <h1 className="font-semibold">{lastName}</h1>
+                    </div>
+                    <div className="flex flex-col items-start justify-center gap-2">
+                      <h1 className="font-semibold text-muted-foreground">
+                        Phone Number
+                      </h1>
+                      <h1 className="font-semibold">{phoneNumber}</h1>
+                    </div>
+                    <div className="flex flex-col items-start justify-center gap-2">
+                      <h1 className="font-semibold text-muted-foreground">
+                        Email
+                      </h1>
+                      <h1 className="font-semibold">{email}</h1>
+                    </div>
+                  </div>
+                  <DialogFooter className="flex items-center gap-4">
+                    <Button type="submit" onClick={(e) => mutate(e)}>
+                      Sign up
+                    </Button>
+                    <DialogClose>
+                      <Button>Cancel</Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </DialogContent>
+              </DialogSCN>
             </div>
           </form>
         </CardContent>
       </Card>
+      {alertMessage && (
+        <Alert
+          title="Sign up"
+          description={alertMessage}
+          type={alertType}
+          setAlertMessage={setAlertMessage}
+          variant="default"
+        />
+      )}
     </div>
   );
 };
